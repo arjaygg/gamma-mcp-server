@@ -2,6 +2,8 @@
 
 An MCP (Model Context Protocol) server for the Gamma API, enabling AI assistants to create presentations, documents, and social content using Gamma's generation capabilities.
 
+🔗 **GitHub Repository**: [https://github.com/CryptoJym/gamma-mcp-server](https://github.com/CryptoJym/gamma-mcp-server)
+
 ## Features
 
 - 🎨 Generate presentations, documents, and social content
