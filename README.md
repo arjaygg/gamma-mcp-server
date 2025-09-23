@@ -1,170 +1,144 @@
 # Gamma MCP Server
 
-An MCP (Model Context Protocol) server for the Gamma API, enabling AI assistants to create presentations, documents, and social content using Gamma's generation capabilities.
+Open-source Model Context Protocol (MCP) server for the [Gamma Generate API](https://developers.gamma.app). This project lets any MCP-capable assistant (Claude Desktop, custom agents, etc.) spin up Gamma presentations, documents, or social cards on demand—complete with themes, imagery, exports, and share links.
 
-🔗 **GitHub Repository**: [https://github.com/CryptoJym/gamma-mcp-server](https://github.com/CryptoJym/gamma-mcp-server)
+---
 
-## Features
+## Table of Contents
+1. [Why this exists](#why-this-exists)
+2. [Feature highlights](#feature-highlights)
+3. [Quick start](#quick-start)
+4. [MCP tools](#mcp-tools)
+5. [Workflow recipes](#workflow-recipes)
+6. [Live run log](#live-run-log)
+7. [Contributing](#contributing)
+8. [License](#license)
 
-- 🎨 Generate presentations, documents, and social content
-- 🎯 Customize text generation with different modes (generate, condense, preserve)
-- 🧩 Fine-tune card splitting, layouts, and export targets (PDF/PPTX)
-- 🖼️ Control image generation from sources such as AI, Unsplash, Giphy, or curated web results
-- 📊 Configure text amount, tone, audience, and language with per-card density controls
-- 🔒 Set workspace and external sharing permissions with one call
-- 📚 Discover supported option values (formats, image sources, dimensions, etc.) via MCP tooling
+---
 
-## Installation
+## Why this exists
+Gamma’s web UI is brilliant—but repetitive tasks (briefs, doc variants, campaign decks) still take too many clicks. The Gamma MCP server exposes the full Gamma API through MCP so agents can:
+- Prototype ideas and decks in seconds.
+- Standardize brand-ready exports (PDF/PPTX).
+- Keep humans focused on feedback, not formatting.
 
+The repository is structured to feel “official”: clear install steps, reproducible scripts, and live links to assets generated during this build.
+
+---
+
+## Feature highlights
+- **Any Gamma artifact**: presentations, documents, or social cards via `format`.
+- **Text intelligence**: choose generation vs condensation, tone, language, per-card density.
+- **Imagery controls**: AI generated, Unsplash, Giphy, curated web options, plus model and style hints.
+- **Layout mastery**: explicit card counts, split modes, aspect ratios (16×9, 4×5, Letter, etc.).
+- **Sharing & exports**: set workspace/external permissions and request additional exports (PDF/PPTX).
+- **Options catalogue**: `gamma_describe_options` reports all accepted enum values straight from code—no guessing.
+- **Status + share links**: `gamma_get_status` returns live progress, Gamma URLs, and credit usage.
+
+---
+
+## Quick start
+### Prerequisites
+- Node.js ≥ **18**
+- A Gamma API key (request via [Gamma Generate](https://developers.gamma.app))
+- `git`
+
+### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/gamma-mcp-server.git
+# 1. Clone
+git clone https://github.com/CryptoJym/gamma-mcp-server.git
 cd gamma-mcp-server
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Build the project
-npm run build
-```
-
-## Configuration
-
-1. Copy `.env.example` to `.env`:
-```bash
+# 3. Configure environment
 cp .env.example .env
+# edit .env and set
+# GAMMA_API_KEY=sk-gamma-your-key
+
+# 4. Type-check & build
+npm run build
+
+# 5. Optional smoke test (hits live Gamma API)
+GAMMA_API_KEY=sk-gamma-your-key npm run test
 ```
 
-2. Add your Gamma API key:
-```env
-GAMMA_API_KEY=sk-gamma-your-api-key-here
-```
-
-3. (Optional) Configure default settings:
-```env
-DEFAULT_FORMAT=presentation
-DEFAULT_NUM_CARDS=10
-DEFAULT_TEXT_MODE=generate
-DEFAULT_TEXT_AMOUNT=medium
-DEFAULT_IMAGE_SOURCE=aiGenerated
-DEFAULT_CARD_SPLIT=auto
-# Comma-separated list, e.g. "pdf,pptx"
-DEFAULT_EXPORT_AS=
-# Apply when defaulting card dimensions, e.g. "16x9"
-DEFAULT_CARD_DIMENSIONS=
-```
-
-## Usage
-
-### With Claude Desktop
-
-Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-
+### Register with MCP clients (Claude Desktop example)
+Add this entry to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
     "gamma": {
       "command": "node",
-      "args": ["/path/to/gamma-mcp-server/dist/index.js"],
+      "args": ["/absolute/path/to/gamma-mcp-server/dist/index.js"],
       "env": {
-        "GAMMA_API_KEY": "sk-gamma-your-api-key-here"
+        "GAMMA_API_KEY": "sk-gamma-your-key"
       }
     }
   }
 }
 ```
 
-### Available Tools
+---
 
-#### `gamma_generate`
-Generate content using Gamma AI.
+## MCP tools
+| Tool | Purpose | Key Inputs |
+| ---- | ------- | ---------- |
+| `gamma_generate` | Main generator for presentations, documents, and social cards. | `inputText`, optional knobs (`format`, `textMode`, `numCards`, `cardOptions.dimensions`, `imageOptions`, `sharingOptions`, etc.) |
+| `gamma_get_status` | Polls job status, shareable `gammaUrl`, and credit consumption. | `generationId` |
+| `gamma_get_themes` | Returns Gamma themes; falls back to curated defaults if the API doesn’t respond. | _None_ |
+| `gamma_describe_options` | Lists accepted enum values so prompts stay valid. | Optional `category` (e.g., `imageSources`) and `format` |
 
-**Parameters:**
-- `inputText` (required): Text used to generate content (1–750k characters)
-- `textMode`: Controls text generation mode (`generate`, `condense`, `preserve`)
-- `format`: Output format (`presentation`, `document`, `social`)
-- `themeName`: Visual theme for the content
-- `numCards`: Number of cards (1–75, defaults respect `DEFAULT_NUM_CARDS` when `cardSplit=auto`)
-- `cardSplit`: How Gamma splits cards (`auto`, `inputTextBreaks`)
-- `additionalInstructions`: Extra layout/style guidance (≤500 chars)
-- `exportAs`: Extra export format(s) (`pdf`, `pptx` or array of both)
-- `textOptions`: Object with:
-  - `amount`: Text volume per card (`brief`, `medium`, `detailed`, `extensive`)
-  - `tone`: Content mood/voice (≤500 chars)
-  - `audience`: Target readers (≤500 chars)
-  - `language`: Output language code (see Gamma docs)
-- `imageOptions`: Object with:
-  - `source`: Image origin (`aiGenerated`, `pictographic`, `unsplash`, `webAllImages`, `webFreeToUse`, `webFreeToUseCommercially`, `giphy`, `placeholder`, `noImages`)
-  - `model`: AI image generation model
-  - `style`: Visual image style (≤500 chars)
-- `cardOptions`: Object with:
-  - `dimensions`: Aspect/page size (e.g. `16x9`, `4x3`, `pageless`, `4x5`)
-- `sharingOptions`: Object with:
-  - `workspaceAccess`: Internal workspace sharing permissions (`noAccess`, `view`, `comment`, `edit`, `fullAccess`)
-  - `externalAccess`: External sharing permissions (`noAccess`, `view`, `comment`, `edit`)
+Schema validation happens with Zod, mirroring Gamma’s documentation (length limits, enum enforcement, etc.). Any validation errors are surfaced as MCP-friendly responses.
 
-**Example:**
-```javascript
-{
-  "inputText": "Create a presentation about the future of AI",
-  "format": "presentation",
-  "numCards": 12,
-  "textOptions": {
-    "amount": "detailed",
-    "tone": "professional",
-    "audience": "tech executives"
-  },
-  "imageOptions": {
-    "source": "aiGenerated",
-    "style": "futuristic"
-  }
-}
-```
+---
 
-#### `gamma_get_themes`
-Get available themes for Gamma presentations.
-
-#### `gamma_get_status`
-Check the status of a generation request.
-
-**Parameters:**
-- `generationId`: The ID of the generation to check
-
-#### `gamma_describe_options`
-List the accepted option values supported by the Gamma API (formats, image sources, dimensions, permissions, etc.).
-
-**Parameters:**
-- `category`: Optional filter (`textModes`, `formats`, `textAmounts`, `imageSources`, `cardSplits`, `exportTypes`, `cardDimensions`, `cardDimensionsByFormat`, `workspaceAccessLevels`, `externalAccessLevels`)
-- `format`: Optional format filter when requesting card dimensions
-
-## Development
-
+## Workflow recipes
+### 1. Utlyze “Open AI Bar” social promo (multi-platform asset)
+Generate Gamma-branded social copy/cards advertising the free Tuesday AI clinic.
 ```bash
-# Run in development mode
-npm run dev
+GAMMA_API_KEY=sk-gamma-your-key \
+npx tsx scripts/generate-utlyze-ad.ts
+```
+**Live asset:** `https://gamma.app/docs/8hkm743zfnymbrr`
 
-# Build the project
+### 2. “Gamma MCP Launchpad” deck (official overview)
+Create a Gamma-themed presentation that explains this MCP, setup steps, and CTAs.
+```bash
+GAMMA_API_KEY=sk-gamma-your-key \
+npx tsx scripts/generate-gamma-overview.ts
+```
+**Live asset:** `https://gamma.app/docs/lta8lrr6104aksa`
+
+Both scripts rely on the shared `GammaClient`, wait for `gammaUrl` readiness, and print the shareable link once Gamma marks the run `completed`.
+
+---
+
+## Live run log
+These instructions were executed during the conversation and are preserved here for transparency:
+1. Hardened the MCP server, added `scripts/generate-utlyze-ad.ts`, and confirmed outputs via `npm run build` & `npm run test`.
+2. Triggered a live Gamma job for the Utlyze Open AI Bar promotion and captured the share link above.
+3. Authored `scripts/generate-gamma-overview.ts` to build an official MCP launch deck and captured the share link above.
+4. Updated the README to reflect setup, workflow, and live assets so future users can reproduce the exact process.
+
+Use these steps as a checklist when demoing or onboarding new teammates—everything needed to regenerate the assets or create fresh ones is versioned here.
+
+---
+
+## Contributing
+Issues and PRs are welcome! Suggested contributions:
+- Additional workflow scripts (e.g., meeting notes, investor decks, weekly reports).
+- Integration with schedulers/automation pipelines for posting Gamma-generated content.
+- Enhanced error handling or caching for theme lists/status polling.
+
+Before submitting:
+```bash
 npm run build
-
-# Start the server
-npm start
+npm run test   # requires GAMMA_API_KEY
 ```
 
-## API Notes
-
-- The Gamma API is currently in beta, so functionality and pricing may change
-- API endpoint: `https://public-api.gamma.app/v0.2/generations`
-- Authentication is done via `X-API-KEY` header
-- Default values are applied when optional parameters are not specified
-
-## Error Handling
-
-The server handles various error scenarios:
-- Missing API key
-- Invalid parameters (validated with Zod)
-- API errors with descriptive messages
-- Network timeouts (30 second default)
+---
 
 ## License
-
-MIT
+MIT License © Utlyze / CryptoJym. Feel free to adapt for your own MCP tooling while crediting the original repository.

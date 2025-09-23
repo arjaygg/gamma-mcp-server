@@ -61,8 +61,13 @@ export interface GenerationResponse {
   generationId: string;
   status: string;
   url?: string;
+  gammaUrl?: string;
   message?: string;
   error?: string;
+  credits?: {
+    deducted?: number;
+    remaining?: number;
+  };
 }
 
 export interface Theme {
@@ -189,8 +194,10 @@ export class GammaClient {
       return {
         generationId: response.data.generationId || response.data.id,
         status: response.data.status || 'submitted',
-        url: response.data.url,
+        url: response.data.url || response.data.gammaUrl,
+        gammaUrl: response.data.gammaUrl,
         message: response.data.message || 'Generation request submitted successfully',
+        credits: response.data.credits,
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -207,8 +214,10 @@ export class GammaClient {
       return {
         generationId,
         status: response.data.status,
-        url: response.data.url,
+        url: response.data.url || response.data.gammaUrl,
+        gammaUrl: response.data.gammaUrl,
         message: response.data.message,
+        credits: response.data.credits,
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
