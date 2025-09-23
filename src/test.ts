@@ -12,6 +12,7 @@ async function testGammaClient() {
 
   const client = new GammaClient(apiKey);
 
+  console.log('Supported option categories:', GammaClient.getOptionReference());
   console.log('Testing Gamma API Client...\n');
 
   // Test 1: Get available themes
@@ -30,6 +31,9 @@ async function testGammaClient() {
       inputText: 'Create a 5-slide presentation about the benefits of remote work',
       format: 'presentation',
       numCards: 5,
+      cardSplit: 'auto',
+      additionalInstructions: 'Focus on hybrid collaboration best practices',
+      exportAs: 'pdf',
       textOptions: {
         amount: 'medium',
         tone: 'professional',
@@ -38,6 +42,13 @@ async function testGammaClient() {
       imageOptions: {
         source: 'aiGenerated',
         style: 'modern'
+      },
+      cardOptions: {
+        dimensions: '16x9'
+      },
+      sharingOptions: {
+        workspaceAccess: 'comment',
+        externalAccess: 'view'
       }
     });
     console.log('Generation result:', result);

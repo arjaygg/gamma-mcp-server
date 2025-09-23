@@ -8,10 +8,11 @@ An MCP (Model Context Protocol) server for the Gamma API, enabling AI assistants
 
 - 🎨 Generate presentations, documents, and social content
 - 🎯 Customize text generation with different modes (generate, condense, preserve)
-- 🖼️ Control image generation from various sources (AI, Unsplash, Giphy, etc.)
-- 🎭 Apply different themes and styles
-- 📊 Configure text amount, tone, audience, and language
-- 🔒 Set sharing permissions for generated content
+- 🧩 Fine-tune card splitting, layouts, and export targets (PDF/PPTX)
+- 🖼️ Control image generation from sources such as AI, Unsplash, Giphy, or curated web results
+- 📊 Configure text amount, tone, audience, and language with per-card density controls
+- 🔒 Set workspace and external sharing permissions with one call
+- 📚 Discover supported option values (formats, image sources, dimensions, etc.) via MCP tooling
 
 ## Installation
 
@@ -46,6 +47,11 @@ DEFAULT_NUM_CARDS=10
 DEFAULT_TEXT_MODE=generate
 DEFAULT_TEXT_AMOUNT=medium
 DEFAULT_IMAGE_SOURCE=aiGenerated
+DEFAULT_CARD_SPLIT=auto
+# Comma-separated list, e.g. "pdf,pptx"
+DEFAULT_EXPORT_AS=
+# Apply when defaulting card dimensions, e.g. "16x9"
+DEFAULT_CARD_DIMENSIONS=
 ```
 
 ## Usage
@@ -74,23 +80,28 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 Generate content using Gamma AI.
 
 **Parameters:**
-- `inputText` (required): Text used to generate content
+- `inputText` (required): Text used to generate content (1–750k characters)
 - `textMode`: Controls text generation mode (`generate`, `condense`, `preserve`)
 - `format`: Output format (`presentation`, `document`, `social`)
 - `themeName`: Visual theme for the content
-- `numCards`: Number of cards (1-60, default: 10)
+- `numCards`: Number of cards (1–75, defaults respect `DEFAULT_NUM_CARDS` when `cardSplit=auto`)
+- `cardSplit`: How Gamma splits cards (`auto`, `inputTextBreaks`)
+- `additionalInstructions`: Extra layout/style guidance (≤500 chars)
+- `exportAs`: Extra export format(s) (`pdf`, `pptx` or array of both)
 - `textOptions`: Object with:
-  - `amount`: Text volume (`brief`, `medium`, `detailed`)
-  - `tone`: Content mood/voice
-  - `audience`: Target readers
-  - `language`: Output language
+  - `amount`: Text volume per card (`brief`, `medium`, `detailed`, `extensive`)
+  - `tone`: Content mood/voice (≤500 chars)
+  - `audience`: Target readers (≤500 chars)
+  - `language`: Output language code (see Gamma docs)
 - `imageOptions`: Object with:
-  - `source`: Image origin (`aiGenerated`, `unsplash`, `giphy`, `googleImages`, `none`)
+  - `source`: Image origin (`aiGenerated`, `pictographic`, `unsplash`, `webAllImages`, `webFreeToUse`, `webFreeToUseCommercially`, `giphy`, `placeholder`, `noImages`)
   - `model`: AI image generation model
-  - `style`: Visual image style
+  - `style`: Visual image style (≤500 chars)
+- `cardOptions`: Object with:
+  - `dimensions`: Aspect/page size (e.g. `16x9`, `4x3`, `pageless`, `4x5`)
 - `sharingOptions`: Object with:
-  - `workspaceAccess`: Internal workspace sharing permissions
-  - `externalAccess`: External sharing permissions
+  - `workspaceAccess`: Internal workspace sharing permissions (`noAccess`, `view`, `comment`, `edit`, `fullAccess`)
+  - `externalAccess`: External sharing permissions (`noAccess`, `view`, `comment`, `edit`)
 
 **Example:**
 ```javascript
@@ -118,6 +129,13 @@ Check the status of a generation request.
 
 **Parameters:**
 - `generationId`: The ID of the generation to check
+
+#### `gamma_describe_options`
+List the accepted option values supported by the Gamma API (formats, image sources, dimensions, permissions, etc.).
+
+**Parameters:**
+- `category`: Optional filter (`textModes`, `formats`, `textAmounts`, `imageSources`, `cardSplits`, `exportTypes`, `cardDimensions`, `cardDimensionsByFormat`, `workspaceAccessLevels`, `externalAccessLevels`)
+- `format`: Optional format filter when requesting card dimensions
 
 ## Development
 
