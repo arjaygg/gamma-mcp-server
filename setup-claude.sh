@@ -6,24 +6,57 @@ echo "================================================"
 # Get the current directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Check if .env exists
+# Check if .env exists, if not create it
 if [ ! -f "$SCRIPT_DIR/.env" ]; then
     echo "⚠️  .env file not found. Creating from .env.example..."
     cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
-    echo "📝 Please edit .env and add your Gamma API key"
-    echo "   Get your API key from: https://gamma.app/api"
-    exit 1
 fi
 
-# Check if API key is set
-if grep -q "sk-gamma-your-api-key-here" "$SCRIPT_DIR/.env"; then
-    echo "❌ Please update the GAMMA_API_KEY in .env file"
-    echo "   Get your API key from: https://gamma.app/api"
-    exit 1
-fi
-
-# Extract API key
+# Extract API key from .env
 GAMMA_API_KEY=$(grep GAMMA_API_KEY "$SCRIPT_DIR/.env" | cut -d '=' -f2)
+
+# Check if API key is set or is still the placeholder
+if [ -z "$GAMMA_API_KEY" ] || [ "$GAMMA_API_KEY" = "sk-gamma-your-api-key-here" ]; then
+    echo ""
+    echo "📝 Gamma API Key Required"
+    echo "   Get your API key from: https://developers.gamma.app"
+    echo ""
+    
+    # Prompt for API key
+    read -p "Enter your Gamma API key: " USER_API_KEY
+    
+    # Validate the API key format
+    if [ -z "$USER_API_KEY" ]; then
+        echo "❌ Error: API key cannot be empty"
+        exit 1
+    fi
+    
+    if [[ ! "$USER_API_KEY" =~ ^sk-gamma- ]]; then
+        echo "⚠️  Warning: API key should start with 'sk-gamma-'"
+        read -p "Continue anyway? (y/N): " CONTINUE
+        if [[ ! "$CONTINUE" =~ ^[Yy]$ ]]; then
+            echo "❌ Setup cancelled"
+            exit 1
+        fi
+    fi
+    
+    # Update the .env file
+    if grep -q "GAMMA_API_KEY=" "$SCRIPT_DIR/.env"; then
+        # Replace existing line (macOS and Linux compatible)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s|^GAMMA_API_KEY=.*|GAMMA_API_KEY=$USER_API_KEY|" "$SCRIPT_DIR/.env"
+        else
+            sed -i "s|^GAMMA_API_KEY=.*|GAMMA_API_KEY=$USER_API_KEY|" "$SCRIPT_DIR/.env"
+        fi
+    else
+        # Add new line
+        echo "GAMMA_API_KEY=$USER_API_KEY" >> "$SCRIPT_DIR/.env"
+    fi
+    
+    GAMMA_API_KEY="$USER_API_KEY"
+    echo "✅ API key saved to .env file"
+    echo ""
+fi
 
 # Create the configuration
 echo ""
