@@ -56,14 +56,15 @@ async function testGammaClient() {
     // Test 3: Check generation status (if we have an ID)
     if (result.generationId) {
       console.log('\n3. Checking generation status...');
-      setTimeout(async () => {
-        try {
-          const status = await client.getGenerationStatus(result.generationId);
-          console.log('Generation status:', status);
-        } catch (error) {
-          console.error('Error checking status:', error);
-        }
-      }, 2000);
+      // Wait 2 seconds before checking status
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      try {
+        const status = await client.getGenerationStatus(result.generationId);
+        console.log('Generation status:', status);
+      } catch (error) {
+        console.error('Error checking status:', error);
+      }
     }
   } catch (error) {
     console.error('Error generating content:', error);
