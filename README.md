@@ -54,20 +54,33 @@ cd gamma-mcp-server
 # 2. Install dependencies
 npm install
 
-# 3. Configure environment
-cp .env.example .env
-# edit .env and set
-# GAMMA_API_KEY=sk-gamma-your-key
-
-# 4. Type-check & build
+# 3. Build the project
 npm run build
 
-# 5. Optional smoke test (hits live Gamma API)
+# 4. Optional smoke test (hits live Gamma API)
 GAMMA_API_KEY=sk-gamma-your-key npm run test
 ```
 
 ### Register with MCP clients (Claude Desktop example)
-Add this entry to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+#### Easy Setup (Recommended)
+Use the interactive setup script:
+```bash
+# Run the setup helper
+./setup-claude.sh
+
+# It will:
+# 1. Prompt for your Gamma API key (if not already set)
+# 2. Validate the key format
+# 3. Save it to .env automatically
+# 4. Generate the exact config you need for Claude Desktop
+
+# Then copy the output and paste into:
+# ~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+#### Manual Setup
+Alternatively, add this entry manually to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
