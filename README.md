@@ -34,6 +34,8 @@ The repository is structured to feel “official”: clear install steps, reprod
 - **Sharing & exports**: set workspace/external permissions and request additional exports (PDF/PPTX).
 - **Options catalogue**: `gamma_describe_options` reports all accepted enum values straight from code—no guessing.
 - **Status + share links**: `gamma_get_status` returns live progress, Gamma URLs, and credit usage.
+- **Production-ready**: Enterprise-grade security, retry logic, rate limiting, and comprehensive error handling.
+- **Configurable**: Environment variables for timeouts, retries, and default generation settings.
 
 ---
 
@@ -126,6 +128,34 @@ Use these steps as a checklist when demoing or onboarding new teammates—everyt
 
 ---
 
+## Security
+
+This project implements enterprise-grade security features:
+- API key validation and protection
+- Request payload limits (prevents DoS)
+- Exponential backoff retry logic
+- Rate limit handling (429 responses)
+- Input validation with Zod schemas
+- Configurable timeouts and retries
+
+See [SECURITY.md](SECURITY.md) for full details and best practices.
+
+---
+
+## Configuration
+
+All configuration is done via environment variables. See [`.env.example`](.env.example) for available options:
+
+- `GAMMA_API_KEY` - Your Gamma API key (required)
+- `GAMMA_TIMEOUT_MS` - Request timeout in milliseconds (default: 30000)
+- `GAMMA_MAX_RETRIES` - Max retry attempts (default: 3)
+- `DEFAULT_NUM_CARDS` - Default number of cards (default: 10)
+- `DEFAULT_TEXT_MODE` - Default text mode (generate/condense/preserve)
+- `DEFAULT_FORMAT` - Default format (presentation/document/social)
+- And more... see `.env.example` for complete list
+
+---
+
 ## Contributing
 Issues and PRs are welcome! Suggested contributions:
 - Additional workflow scripts (e.g., meeting notes, investor decks, weekly reports).
@@ -136,6 +166,7 @@ Before submitting:
 ```bash
 npm run build
 npm run test   # requires GAMMA_API_KEY
+npm audit      # check for vulnerabilities
 ```
 
 ---
