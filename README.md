@@ -61,30 +61,41 @@ npm run build
 GAMMA_API_KEY=sk-gamma-your-key npm run test
 ```
 
-### Register with MCP clients (Claude Desktop example)
+### Validate Server Configuration
 
-#### Easy Setup (Recommended)
-Use the interactive setup script:
+Before connecting to any coding agent, validate that the server is properly configured:
+
 ```bash
-# Run the setup helper
-./setup-claude.sh
+# Run the validation script
+./validate-server.sh
 
-# It will:
+# This will:
 # 1. Prompt for your Gamma API key (if not already set)
-# 2. Validate the key format
-# 3. Save it to .env automatically
-# 4. Generate the exact config you need for Claude Desktop
-
-# Then copy the output and paste into:
-# ~/Library/Application Support/Claude/claude_desktop_config.json
+# 2. Validate the key format and save to .env
+# 3. Check the build and Node.js version
+# 4. Provide configuration examples for reference
 ```
 
-#### Manual Setup
-Alternatively, add this entry manually to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+### Connect to Coding Agent
+
+**🔐 Security Best Practice:** This MCP server is designed for **manual configuration per project** rather than automatic setup. This gives you:
+- Better security isolation
+- Granular control over which projects have access
+- Separate API keys per environment
+- Clear audit trail
+
+See **[CLIENT_CONFIGURATION.md](CLIENT_CONFIGURATION.md)** for comprehensive setup guides including:
+- Project-specific configurations
+- Environment-based setups
+- Security best practices
+- Testing procedures
+- Troubleshooting guide
+
+**Quick Example** (Claude Desktop):
 ```json
 {
   "mcpServers": {
-    "gamma": {
+    "gamma-my-project": {
       "command": "node",
       "args": ["/absolute/path/to/gamma-mcp-server/dist/index.js"],
       "env": {
@@ -94,6 +105,7 @@ Alternatively, add this entry manually to `~/Library/Application Support/Claude/
   }
 }
 ```
+*Location: `~/Library/Application Support/Claude/claude_desktop_config.json`*
 
 ---
 
