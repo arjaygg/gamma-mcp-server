@@ -104,7 +104,6 @@ const parseDefaultExportTypes = (value: string | undefined): ExportType[] | unde
 
 export class GammaClient {
   private client: AxiosInstance;
-  private apiKey: string;
   private defaultNumCards: number;
   private defaultTextMode?: TextMode;
   private defaultFormat?: Format;
@@ -122,7 +121,6 @@ export class GammaClient {
       throw new Error('Invalid API key format. API key must start with "sk-gamma-"');
     }
     
-    this.apiKey = apiKey;
     this.version = '1.0.0'; // Should match package.json
     this.maxRetries = this.parseMaxRetries(process.env.GAMMA_MAX_RETRIES, MAX_RETRIES);
     
