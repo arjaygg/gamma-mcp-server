@@ -231,7 +231,7 @@ class LLMGammaOrchestrator {
     }
   }
 
-  private selectImageSource(style: string): 'aiGenerated' | 'unsplash' | 'giphy' | 'none' {
+  private selectImageSource(style: string): 'aiGenerated' | 'unsplash' | 'giphy' | 'noImages' {
     if (style === 'creative' || style === 'modern') return 'aiGenerated';
     if (style === 'minimal') return 'unsplash';
     if (style === 'fun' || style === 'casual') return 'giphy';

@@ -79,6 +79,10 @@ export interface Theme {
 
 const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_NUM_CARDS = 75;
+const MAX_BODY_LENGTH = 1_000_000; // 1MB
+const MAX_CONTENT_LENGTH = 10_000_000; // 10MB
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 1000;
 
 const normalizeEnum = <T extends readonly string[]>(value: string | undefined, allowed: T) => {
   if (!value) {
@@ -100,7 +104,6 @@ const parseDefaultExportTypes = (value: string | undefined): ExportType[] | unde
 
 export class GammaClient {
   private client: AxiosInstance;
-  private apiKey: string;
   private defaultNumCards: number;
   private defaultTextMode?: TextMode;
   private defaultFormat?: Format;
@@ -109,16 +112,30 @@ export class GammaClient {
   private defaultImageSource?: ImageSource;
   private defaultExportAs?: ExportType | ExportType[];
   private defaultCardDimension?: CardDimension;
+  private maxRetries: number;
+  private version: string;
 
   constructor(apiKey: string) {
-    this.apiKey = apiKey;
+    // Validate API key format
+    if (!apiKey || !apiKey.startsWith('sk-gamma-')) {
+      throw new Error('Invalid API key format. API key must start with "sk-gamma-"');
+    }
+    
+    this.version = '1.0.0'; // Should match package.json
+    this.maxRetries = this.parseMaxRetries(process.env.GAMMA_MAX_RETRIES, MAX_RETRIES);
+    
+    const timeout = this.parseTimeout(process.env.GAMMA_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+    
     this.client = axios.create({
       baseURL: 'https://public-api.gamma.app',
       headers: {
         'X-API-KEY': apiKey,
         'Content-Type': 'application/json',
+        'User-Agent': `gamma-mcp-server/${this.version}`,
       },
-      timeout: DEFAULT_TIMEOUT_MS,
+      timeout,
+      maxBodyLength: MAX_BODY_LENGTH,
+      maxContentLength: MAX_CONTENT_LENGTH,
     });
 
     this.defaultNumCards = this.parseNumCards(process.env.DEFAULT_NUM_CARDS, 10);
@@ -136,7 +153,7 @@ export class GammaClient {
   }
 
   async generateContent(params: GenerateContentParams): Promise<GenerationResponse> {
-    try {
+    return this.retryWithBackoff(async () => {
       const textMode = (params.textMode ?? this.defaultTextMode ?? 'generate') as TextMode;
       const format = (params.format ?? this.defaultFormat ?? 'presentation') as Format;
       const cardSplit = (params.cardSplit ?? this.defaultCardSplit ?? 'auto') as CardSplit;
@@ -189,23 +206,25 @@ export class GammaClient {
         }
       }
 
-      const response = await this.client.post('/v0.2/generations', requestBody);
+      try {
+        const response = await this.client.post('/v0.2/generations', requestBody);
 
-      return {
-        generationId: response.data.generationId || response.data.id,
-        status: response.data.status || 'submitted',
-        url: response.data.url || response.data.gammaUrl,
-        gammaUrl: response.data.gammaUrl,
-        message: response.data.message || 'Generation request submitted successfully',
-        credits: response.data.credits,
-      };
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return this.handleAxiosError(error);
+        return {
+          generationId: response.data.generationId || response.data.id,
+          status: response.data.status || 'submitted',
+          url: response.data.url || response.data.gammaUrl,
+          gammaUrl: response.data.gammaUrl,
+          message: response.data.message || 'Generation request submitted successfully',
+          credits: response.data.credits,
+        };
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          return this.handleAxiosError(error);
+        }
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Failed to generate content: ${message}`);
       }
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Failed to generate content: ${message}`);
-    }
+    });
   }
 
   async getGenerationStatus(generationId: string): Promise<GenerationResponse> {
@@ -273,6 +292,22 @@ export class GammaClient {
     }
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private parseTimeout(value: string | undefined, fallback: number): number {
+    if (!value) {
+      return fallback;
+    }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private parseMaxRetries(value: string | undefined, fallback: number): number {
+    if (!value) {
+      return fallback;
+    }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
   }
 
   private buildTextOptions(options?: TextOptionsInput) {
@@ -344,5 +379,63 @@ export class GammaClient {
       status: 'error',
       error: `Network error: ${error.message}`,
     };
+  }
+
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    attempt: number = 0
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      // Don't retry if max retries reached
+      if (attempt >= this.maxRetries) {
+        throw error;
+      }
+
+      // Check if error is retryable
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        
+        // Don't retry client errors (except 429)
+        if (status && status >= 400 && status < 500 && status !== 429) {
+          throw error;
+        }
+
+        // Handle rate limiting (429) with Retry-After header
+        if (status === 429) {
+          const retryAfter = error.response?.headers['retry-after'];
+          const delayMs = retryAfter 
+            ? parseInt(retryAfter, 10) * 1000 
+            : this.calculateBackoffDelay(attempt);
+          
+          console.error(`Rate limited (429). Retrying after ${delayMs}ms...`);
+          await this.sleep(delayMs);
+          return this.retryWithBackoff(operation, attempt + 1);
+        }
+
+        // Retry server errors (5xx) and network errors with exponential backoff
+        if (!status || status >= 500) {
+          const delayMs = this.calculateBackoffDelay(attempt);
+          console.error(`Request failed (attempt ${attempt + 1}/${this.maxRetries}). Retrying after ${delayMs}ms...`);
+          await this.sleep(delayMs);
+          return this.retryWithBackoff(operation, attempt + 1);
+        }
+      }
+
+      // Non-Axios errors or non-retryable errors
+      throw error;
+    }
+  }
+
+  private calculateBackoffDelay(attempt: number): number {
+    // Exponential backoff with jitter: base * 2^attempt + random jitter
+    const exponentialDelay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);
+    const jitter = Math.random() * 1000; // 0-1000ms jitter
+    return Math.min(exponentialDelay + jitter, 30000); // Cap at 30 seconds
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

@@ -13,21 +13,35 @@ if (!apiKey) {
 const client = new GammaClient(apiKey);
 
 async function waitForUrl(generationId: string) {
-  const maxAttempts = 24;
-  const delayMs = 5000;
+  const maxAttempts = 20;
+  const initialDelayMs = 2000;
+  const maxDelayMs = 30000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const status = await client.getGenerationStatus(generationId);
-    console.log(`Attempt ${attempt}:`, status);
+    console.log(`Attempt ${attempt}/${maxAttempts}:`, status);
 
+    // Check for completion
     if (status.url || status.gammaUrl) {
       return status.url ?? status.gammaUrl ?? '';
     }
 
+    // Check for terminal failure states
     if (status.status === 'failed' || status.status === 'error' || status.status === 'not_found') {
       throw new Error(status.error || `Generation failed with status: ${status.status}`);
     }
 
+    // Don't wait after the last attempt
+    if (attempt === maxAttempts) {
+      break;
+    }
+
+    // Exponential backoff with jitter
+    const exponentialDelay = initialDelayMs * Math.pow(1.5, attempt - 1);
+    const jitter = Math.random() * 1000;
+    const delayMs = Math.min(exponentialDelay + jitter, maxDelayMs);
+    
+    console.log(`Waiting ${Math.round(delayMs)}ms before next check...`);
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 

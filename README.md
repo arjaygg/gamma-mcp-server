@@ -34,6 +34,8 @@ The repository is structured to feel “official”: clear install steps, reprod
 - **Sharing & exports**: set workspace/external permissions and request additional exports (PDF/PPTX).
 - **Options catalogue**: `gamma_describe_options` reports all accepted enum values straight from code—no guessing.
 - **Status + share links**: `gamma_get_status` returns live progress, Gamma URLs, and credit usage.
+- **Production-ready**: Enterprise-grade security, retry logic, rate limiting, and comprehensive error handling.
+- **Configurable**: Environment variables for timeouts, retries, and default generation settings.
 
 ---
 
@@ -52,24 +54,48 @@ cd gamma-mcp-server
 # 2. Install dependencies
 npm install
 
-# 3. Configure environment
-cp .env.example .env
-# edit .env and set
-# GAMMA_API_KEY=sk-gamma-your-key
-
-# 4. Type-check & build
+# 3. Build the project
 npm run build
 
-# 5. Optional smoke test (hits live Gamma API)
+# 4. Optional smoke test (hits live Gamma API)
 GAMMA_API_KEY=sk-gamma-your-key npm run test
 ```
 
-### Register with MCP clients (Claude Desktop example)
-Add this entry to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+### Configure & Validate Server
+
+Before connecting to any coding agent, configure and validate the server:
+
+```bash
+# Run the configuration script
+./configure-server.sh
+
+# This will:
+# 1. Prompt for your Gamma API key (if not already set)
+# 2. Validate the key format and save to .env
+# 3. Check the build and Node.js version
+# 4. Provide configuration examples for reference
+```
+
+### Connect to Coding Agent
+
+**🔐 Security Best Practice:** This MCP server is designed for **manual configuration per project** rather than automatic setup. This gives you:
+- Better security isolation
+- Granular control over which projects have access
+- Separate API keys per environment
+- Clear audit trail
+
+See **[CLIENT_CONFIGURATION.md](CLIENT_CONFIGURATION.md)** for comprehensive setup guides including:
+- Project-specific configurations
+- Environment-based setups
+- Security best practices
+- Testing procedures
+- Troubleshooting guide
+
+**Quick Example** (Claude Desktop):
 ```json
 {
   "mcpServers": {
-    "gamma": {
+    "gamma-my-project": {
       "command": "node",
       "args": ["/absolute/path/to/gamma-mcp-server/dist/index.js"],
       "env": {
@@ -79,6 +105,7 @@ Add this entry to `~/Library/Application Support/Claude/claude_desktop_config.js
   }
 }
 ```
+*Location: `~/Library/Application Support/Claude/claude_desktop_config.json`*
 
 ---
 
@@ -126,6 +153,34 @@ Use these steps as a checklist when demoing or onboarding new teammates—everyt
 
 ---
 
+## Security
+
+This project implements enterprise-grade security features:
+- API key validation and protection
+- Request payload limits (prevents DoS)
+- Exponential backoff retry logic
+- Rate limit handling (429 responses)
+- Input validation with Zod schemas
+- Configurable timeouts and retries
+
+See [SECURITY.md](SECURITY.md) for full details and best practices.
+
+---
+
+## Configuration
+
+All configuration is done via environment variables. See [`.env.example`](.env.example) for available options:
+
+- `GAMMA_API_KEY` - Your Gamma API key (required)
+- `GAMMA_TIMEOUT_MS` - Request timeout in milliseconds (default: 30000)
+- `GAMMA_MAX_RETRIES` - Max retry attempts (default: 3)
+- `DEFAULT_NUM_CARDS` - Default number of cards (default: 10)
+- `DEFAULT_TEXT_MODE` - Default text mode (generate/condense/preserve)
+- `DEFAULT_FORMAT` - Default format (presentation/document/social)
+- And more... see `.env.example` for complete list
+
+---
+
 ## Contributing
 Issues and PRs are welcome! Suggested contributions:
 - Additional workflow scripts (e.g., meeting notes, investor decks, weekly reports).
@@ -136,6 +191,7 @@ Before submitting:
 ```bash
 npm run build
 npm run test   # requires GAMMA_API_KEY
+npm audit      # check for vulnerabilities
 ```
 
 ---

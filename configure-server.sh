@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "🚀 Gamma MCP Server - Configuration & Validation"
-echo "================================================"
+echo "=================================================="
 
 # Get the current directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
