@@ -61,13 +61,13 @@ npm run build
 GAMMA_API_KEY=sk-gamma-your-key npm run test
 ```
 
-### Validate Server Configuration
+### Configure & Validate Server
 
-Before connecting to any coding agent, validate that the server is properly configured:
+Before connecting to any coding agent, configure and validate the server:
 
 ```bash
-# Run the validation script
-./validate-server.sh
+# Run the configuration script
+./configure-server.sh
 
 # This will:
 # 1. Prompt for your Gamma API key (if not already set)

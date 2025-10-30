@@ -11,18 +11,18 @@ This MCP server is designed to be **manually configured per project** rather tha
 
 ---
 
-## ✅ Server Validation
+## ✅ Server Configuration & Validation
 
-Before configuring any client, validate that the MCP server is properly configured:
+Before configuring any client, configure and validate the MCP server:
 
 ```bash
-# Run the validation script
-./validate-server.sh
+# Run the configuration script
+./configure-server.sh
 
 # This will:
-# 1. Prompt for API key (if needed)
-# 2. Validate the build
-# 3. Check Node.js version
+# 1. Prompt for API key (if needed) and save to .env
+# 2. Validate the API key format
+# 3. Check the build and Node.js version
 # 4. Confirm configuration is ready
 ```
 
@@ -184,10 +184,10 @@ chmod 600 ~/Library/Application\ Support/Claude/claude_desktop_config.json
 
 ## 🧪 Testing Your Configuration
 
-### Test 1: Validate Server
+### Test 1: Configure & Validate Server
 
 ```bash
-./validate-server.sh
+./configure-server.sh
 # Should show: ✅ MCP Server Configuration Valid
 ```
 
@@ -301,7 +301,7 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 
 1. **Verify API key:**
    ```bash
-   ./validate-server.sh
+   ./configure-server.sh
    ```
 
 2. **Check logs for errors:**
@@ -329,7 +329,7 @@ tail -f ~/Library/Logs/Claude/mcp*.log
 
 Before enabling in production:
 
-- [ ] Server validated via `./validate-server.sh`
+- [ ] Server configured & validated via `./configure-server.sh`
 - [ ] Unique API key per environment
 - [ ] Config file has correct absolute paths
 - [ ] API key format validated (starts with `sk-gamma-`)
